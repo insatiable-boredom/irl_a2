@@ -1,3 +1,9 @@
+import numpy as np
+import scipy
+import matplotlib
+from Demos.win32cred_demo import env
+
+
 class QLearningAgent(object):
 
     def __init__(self, n_actions, n_states, epsilon=0.1, alpha=0.1, gamma=1.0):
@@ -7,20 +13,47 @@ class QLearningAgent(object):
         self.alpha = alpha
         self.gamma = gamma
         # TO DO: Initialize variables if necessary
+
+        # Initializes Q-tables
+        self.Q_values = np.zeros((self.n_states, self.n_actions))
         
     def select_action(self, state):
         # TO DO: Implement policy
-        action = None
-        return action
+
+        if np.random.rand() <= self.epsilon:
+            return np.random.randint(0, self.n_actions)
+
+        return np.argmax(self.Q_values[state])
         
     def update(self, state, action, reward, done): # Augment arguments if necessary
         # TO DO: Implement Q-learning update
-        pass
+
+        if not done:
+            # Updates Q-values based on Q-learning equation
+            self.Q_values[state, action] = self.Q_values[state, action] + self.alpha * (reward + (self.gamma * np.argmax(self.Q_values[state+1])) - self.Q_values[state, action])
     
     def train(self, n_episodes):
         # TO DO: Implement the agent loop that trains for n_episodes. 
-        # Return a vector with the the cumulative reward (=return) per episode
+        # Return a vector with the cumulative reward (=return) per episode
         episode_returns = []
+        for episode in range(n_episodes):
+            state = env.reset()
+            cumulative_reward = 0
+            done = env.done()
+
+            while not done:
+
+                action = self.select_action(state)
+                reward = env.step(action)
+                cumulative_reward += reward
+                next_state = env.state()
+                done = env.done()
+                self.update(state, action, reward, done)
+                state = next_state
+
+            episode_returns.append(cumulative_reward)
+
+
         return episode_returns
 
 
