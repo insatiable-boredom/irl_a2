@@ -1,7 +1,7 @@
 import numpy as np
 import scipy
 import matplotlib
-from Demos.win32cred_demo import env
+import ShortCutEnvironment as environnment
 
 
 class QLearningAgent(object):
@@ -37,17 +37,17 @@ class QLearningAgent(object):
         # Return a vector with the cumulative reward (=return) per episode
         episode_returns = []
         for episode in range(n_episodes):
-            state = env.reset()
+            state = environnment.env.reset()
             cumulative_reward = 0
-            done = env.done()
+            done = environnment.env.done()
 
             while not done:
 
                 action = self.select_action(state)
-                reward = env.step(action)
+                reward = environnment.env.step(action)
                 cumulative_reward += reward
-                next_state = env.state()
-                done = env.done()
+                next_state = environnment.env.state()
+                done = environnment.env.done()
                 self.update(state, action, reward, done)
                 state = next_state
 
