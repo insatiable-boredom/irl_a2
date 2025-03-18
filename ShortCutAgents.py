@@ -1,7 +1,7 @@
 import numpy as np
 import scipy
 import matplotlib
-import ShortCutEnvironment as environment
+import ShortCutEnvironment as environnment
 
 
 class QLearningAgent(object):
@@ -14,7 +14,7 @@ class QLearningAgent(object):
         self.gamma = gamma
         # TO DO: Initialize variables if necessary
 
-        # Initializes Q-table
+        # Initializes Q-tables
         self.Q_values = np.zeros((self.n_states, self.n_actions))
         
     def select_action(self, state):
@@ -25,32 +25,34 @@ class QLearningAgent(object):
 
         return np.argmax(self.Q_values[state])
         
-    def update(self, state, next_state, action, reward): # Augment arguments if necessary
+    def update(self, state, next_state, action, reward, done): # Augment arguments if necessary
         # TO DO: Implement Q-learning update
 
-        self.Q_values[state, action] = self.Q_values[state, action] + self.alpha * (reward + (self.gamma * np.argmax(self.Q_values[next_state])) - self.Q_values[state, action])
+        if not done:
+            # Updates Q-values based on Q-learning equation
+            self.Q_values[state, action] = self.Q_values[state, action] + self.alpha * (reward + (self.gamma * np.argmax(self.Q_values[next_state])) - self.Q_values[state, action])
     
     def train(self, n_episodes):
         # TO DO: Implement the agent loop that trains for n_episodes. 
         # Return a vector with the cumulative reward (=return) per episode
         episode_returns = []
         for episode in range(n_episodes):
-            state = environment.env.reset()
+            state = environnment.env.reset()
             cumulative_reward = 0
-            done = environment.env.done()
+            done = environnment.env.done()
 
             while not done:
 
                 action = self.select_action(state)
-                reward = environment.env.step(action)
+                reward = environnment.env.step(action)
                 cumulative_reward += reward
-                next_state = environment.env.state()
-                done = environment.env.done()
-                if not done:
-                    self.update(state, next_state, action, reward)
+                next_state = environnment.env.state()
+                done = environnment.env.done()
+                self.update(state, next_state, action, reward, done)
                 state = next_state
 
             episode_returns.append(cumulative_reward)
+
 
         return episode_returns
 
