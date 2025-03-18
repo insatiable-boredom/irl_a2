@@ -25,12 +25,12 @@ class QLearningAgent(object):
 
         return np.argmax(self.Q_values[state])
         
-    def update(self, state, action, reward, done): # Augment arguments if necessary
+    def update(self, state, next_state, action, reward, done): # Augment arguments if necessary
         # TO DO: Implement Q-learning update
 
         if not done:
             # Updates Q-values based on Q-learning equation
-            self.Q_values[state, action] = self.Q_values[state, action] + self.alpha * (reward + (self.gamma * np.argmax(self.Q_values[state+1])) - self.Q_values[state, action])
+            self.Q_values[state, action] = self.Q_values[state, action] + self.alpha * (reward + (self.gamma * np.argmax(self.Q_values[next_state])) - self.Q_values[state, action])
     
     def train(self, n_episodes):
         # TO DO: Implement the agent loop that trains for n_episodes. 
@@ -48,7 +48,7 @@ class QLearningAgent(object):
                 cumulative_reward += reward
                 next_state = environnment.env.state()
                 done = environnment.env.done()
-                self.update(state, action, reward, done)
+                self.update(state, next_state, action, reward, done)
                 state = next_state
 
             episode_returns.append(cumulative_reward)
