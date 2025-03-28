@@ -6,7 +6,7 @@ class QLearningAgent(object):
 
     def __init__(self, n_actions: int, n_states: int, epsilon=0.1, alpha=0.1, gamma=1.0, seed: int = None) -> None:
         """
-        Initializer method for this agent model, sets the values necessary to complete all other methods.
+        Initializer method for Q-Learning agent model, sets the values necessary to complete all other methods.
 
         :param n_actions: Number of actions an agent can take at any state.
         :param n_states: Number of states the environment contains.
@@ -83,7 +83,7 @@ class QLearningAgent(object):
                     self.update(state, action, reward, next_state)
                 # Move along to the next state and cumulate reward
                 state = next_state
-                cumulative_reward += reward  # Should we add the reward of goal state?
+                cumulative_reward += reward
 
             # Record episode cumulative reward
             episode_returns[e] = cumulative_reward
@@ -95,15 +95,15 @@ class SARSAAgent(object):
 
     def __init__(self, n_actions: int, n_states: int, epsilon=0.1, alpha=0.1, gamma=1.0, seed: int = None) -> None:
         """
-                Initializer method for this agent model, sets the values necessary to complete all other methods.
+        Initializer method for SARSA agent model, sets the values necessary to complete all other methods.
 
-                :param n_actions: Number of actions an agent can take at any state.
-                :param n_states: Number of states the environment contains.
-                :param epsilon: Exploration constant.
-                :param alpha: Learning constant.
-                :param gamma: Decay constant.
-                :param seed: Randomness seed.
-                """
+        :param n_actions: Number of actions an agent can take at any state.
+        :param n_states: Number of states the environment contains.
+        :param epsilon: Exploration constant.
+        :param alpha: Learning constant.
+        :param gamma: Decay constant.
+        :param seed: Randomness seed.
+        """
 
         self.n_actions: int = n_actions
         self.n_states: int = n_states
@@ -132,12 +132,13 @@ class SARSAAgent(object):
     def update(self, state: int, action: int, reward: float, next_state: int, next_action: int) -> None:
         """
         Update the expected reward values (Q) table utilizing the formula:
-        Q(s,a) = Q(s, a) + a(r + g*max_a(Q(s')) - Q(s, a)), using Q table, alpha, and gamma.
+        Q(s,a) = Q(s, a) + a(r + g*Q(s',a') - Q(s, a)), using Q table, alpha, and gamma.
 
         :param state: Current state.
         :param action: Selected action.
         :param reward: Reward of applying selected action in current state.
         :param next_state: New state after applying selected action in current state.
+        :param next_action: Selected optimal action for next state.
         """
 
         # Update the expected reward for selected state and action
@@ -174,7 +175,7 @@ class SARSAAgent(object):
                 # Move along to the next state and cumulate reward
                 state = next_state
                 action = next_action
-                cumulative_reward += reward  # Should we add the reward of goal state?
+                cumulative_reward += reward
 
             # Record episode cumulative reward
             episode_returns[e] = cumulative_reward
@@ -186,7 +187,7 @@ class ExpectedSARSAAgent(object):
 
     def __init__(self, n_actions: int, n_states: int, epsilon=0.1, alpha=0.1, gamma=1.0, seed: int = None) -> None:
         """
-        Initializer method for this agent model, sets the values necessary to complete all other methods.
+        Initializer method for Expected SARSA agent model, sets the values necessary to complete all other methods.
 
         :param n_actions: Number of actions an agent can take at any state.
         :param n_states: Number of states the environment contains.
@@ -224,7 +225,7 @@ class ExpectedSARSAAgent(object):
     def update(self, state: int, action: int, reward: float, next_state: int) -> None:
         """
         Update the expected reward values (Q) table utilizing the formula:
-        Q(s,a) = Q(s, a) + a(r + g*max_a(Q(s')) - Q(s, a)), using Q table, alpha, and gamma.
+        Q(s,a) = Q(s, a) + a(r + g * sum(policy(a)) for all a * Q(s',a) - Q(s, a)), using Q table, alpha, and gamma.
 
         :param state: Current state.
         :param action: Selected action.
@@ -271,7 +272,7 @@ class ExpectedSARSAAgent(object):
                     self.update(state, action, reward, next_state)
                 # Move along to the next state and cumulate reward
                 state = next_state
-                cumulative_reward += reward  # Should we add the reward of goal state?
+                cumulative_reward += reward
 
             # Record episode cumulative reward
             episode_returns[e] = cumulative_reward
@@ -283,13 +284,14 @@ class nStepSARSAAgent(object):
 
     def __init__(self, n_actions: int, n_states: int, epsilon=0.1, alpha=0.1, gamma=1.0, n_steps: int = 1, seed: int = None) -> None:
         """
-        Initializer method for this agent model, sets the values necessary to complete all other methods.
+        Initializer method for n-Step agent model, sets the values necessary to complete all other methods.
 
         :param n_actions: Number of actions an agent can take at any state.
         :param n_states: Number of states the environment contains.
         :param epsilon: Exploration constant.
         :param alpha: Learning constant.
         :param gamma: Decay constant.
+        :param n_steps: Number of steps the agent extends out to.
         :param seed: Randomness seed.
         """
 
@@ -322,18 +324,20 @@ class nStepSARSAAgent(object):
     def update(self, state: int, action: int, reward: np.array, update_state: int, update_action: int) -> None:
         """
         Update the expected reward values (Q) table utilizing the formula:
-        Q(s,a) = Q(s, a) + a(r + g*max_a(Q(s')) - Q(s, a)), using Q table, alpha, and gamma.
+        Q(s',a') = Q(s, a) + a((r_t+1 + g * r_t+2 + ... + g^n-1 r_t+n Q(s,a)) for n_steps - Q(s, a)), using Q table, alpha, and gamma.
 
         :param state: Current state.
         :param action: Selected action.
-        :param reward: Reward of applying selected action in current state.
-        :param next_state: New state after applying selected action in current state.
+        :param reward: Reward of applying optimal actions in past states.
+        :param update_state: State being updated in the Q-table.
+        :param update_action: Action being update in the Q-table.
         """
 
-        # Update the expected reward for selected state and action
+        # Calculate n_step_return
         n_step_return = sum(self.gamma ** step * reward[step] for step in range(self.n_steps))
         n_step_return += self.gamma ** self.n_steps * self.Q[state, action]
 
+        # Update the expected reward for selected state and action
         update = n_step_return - self.Q[state, action]
         self.Q[update_state, update_action] = self.Q[state, action] + self.alpha * update
 
@@ -373,7 +377,7 @@ class nStepSARSAAgent(object):
                 # Update expected reward
                 self.update(current_state, current_action, cumulative_reward, update_state, update_action)
 
-                # Select and complete an action, moving to the next state and accumulating the reward
+                # Select and complete an action, updating past rewards, moving to the next state and accumulating the reward
                 n_step_rewards = np.roll(n_step_rewards, -1)
                 n_step_rewards[self.n_steps-1] = env.step(current_action)
                 current_state = env.state()
