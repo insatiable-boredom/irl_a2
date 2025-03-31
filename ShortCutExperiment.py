@@ -3,34 +3,44 @@ import numpy as np
 from scipy.signal import savgol_filter
 import unittest
 
-
-# Create a plot that will be used later in the functions to plot graphs, once per experiment
-def create_plot():
-    """
-    Will need to create subplots or axes object from matplotlib.
-    Should receive:
-    title, x_label, y_label.
-    Can receive:
-    domain, x_ticks, y_ticks.
-    """
-    raise NotImplementedError("Function not yet created.")
+from ShortCutAgents import QLearningAgent, SARSAAgent, ExpectedSARSAAgent, nStepSARSAAgent
+from ShortCutEnvironment import ShortcutEnvironment, WindyShortcutEnvironment
 
 
-# Smooth a graph curve to be displayed in the plot, use when appropriate only
-def smooth_curve():
+def create_plot(title="Experiment", x_label="Parameter setting", y_label="Average reward") -> plt.axes:
     """
-    Will need to smooth a curve of points using savgol filter.
-    Should receive:
-    original curve points vector, smoothing window.
-    Can receive:
-    poly.
-    Should return the smoothed curve points vector.
+    Create basic axes plot to overlay graphs, all created plots show as separate figures.
+
+    :param title: Figures title.
+    :param x_label: X-axis label.
+    :param y_label: Y-axis label.
+
+    :return: Matplotlib axes object containing the relevant plot figure.
     """
-    raise NotImplementedError("Function not yet created.")
+
+    plot = plt.axes()
+    plot.set_title(title)
+    plot.set_xlabel(x_label)
+    plot.set_ylabel(y_label)
+    return plot
+
+
+def smooth_curve(curve: np.typing.ArrayLike, window=3, poly=1) -> np.typing.ArrayLike:
+    """
+    Basic smoothing function for vector of curve points, preferably use only when necessary.
+
+    :param curve: Array like ordered collection of points.
+    :param window: Number of co-efficients, must be less than length of curve points.
+    :param poly: Order of polynomial of co-efficients.
+
+    :return: Smoothed curve points.
+    """
+
+    return savgol_filter(curve, window, poly)
 
 
 # Add a graph, curve and legend, to the experiment plot
-def add_graph():
+def add_graph(plot: plt.Axes, curve: np.typing.ArrayLike, label: str = None, smooth: bool = False) -> None:
     """
     Will need to smooth the curve of a graph if necessary and then add it with a legend to the plot.
     Should receive:
@@ -38,22 +48,35 @@ def add_graph():
     Can receive:
     color, line type.
     """
-    raise NotImplementedError("Implement create_plot and smooth_curve first.")
+    points = smooth_curve(curve) if smooth else curve
+    if label is None:
+        plot.plot(points)
+    else:
+        plot.plot(points, label=label)
+        plot.legend()
 
 
 # Repeat a training and result iteration, generate the graph
-def run_repetitions():
+def run_repetitions(agent, seed: int = None, n_repetitions: int = 500, n_episodes: int = 1000):
     """
     Will need to run a number of repetitions that reset the agent and average out the results.
     Should receive:
     agent, environment, number of repetitions.
     Should return an averaged results graph.
     """
-    raise NotImplementedError("Function not yet created.")
+
+    np.random.seed(seed)  # For reproducibility or randomness
+
+    rewards = np.zeros((n_repetitions, n_episodes))
+    for rep in range(n_repetitions):
+        rewards[rep] = agent.train(n_episodes)
+
+    average_rewards = np.mean(rewards, axis=0)
+    return np.mean(average_rewards)
 
 
 # Initialize the agent and environment, call the other functions
-def experiment():
+def experiment(environments, agents, reps, eps, seed):
     """
     Will need iterate over multiple agents and environments to initialize then run experiment, create plot then display.
     Should receive:
@@ -61,6 +84,10 @@ def experiment():
     Can receive:
     customization settings.
     """
+    for env in environments:
+        for agent in agents:
+            e_plot = create_plot(f"Agent: {agent.__name__}, Environment: {env.__name__}")
+
     raise NotImplementedError("Complete all prior functions then work here.")
 
 
@@ -76,7 +103,9 @@ class TestExperimentalFunctions(unittest.TestCase):
     """
 
     def test_create_plot(self):
-        pass
+        plot = create_plot(title='A', x_label='X', y_label='Y')
+        self.assertIsInstance(plot, plt.Axes)
+        self.assertEqual(plot.get_title(), 'A')
 
     def test_smooth_curve(self):
         pass
