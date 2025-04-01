@@ -74,17 +74,17 @@ class QLearningAgent(object):
 
             # Run episode
             while not done:
-                # Select and complete an action
+                # Select and complete an action, and cumulate reward
                 action = self.select_action(state)
                 reward = self.env.step(action)
+                cumulative_reward += reward
                 next_state = self.env.state()
                 done = self.env.done()
                 # Update expected reward if necessary
                 if not done:
                     self.update(state, action, reward, next_state)
-                # Move along to the next state and cumulate reward
+                # Move along to the next state
                 state = next_state
-                cumulative_reward += reward
 
             # Record episode cumulative reward
             episode_returns[e] = cumulative_reward
@@ -167,18 +167,18 @@ class SARSAAgent(object):
 
             # Run episode
             while not done:
-                # Select and complete an action
+                # Select and complete an action, and cumulate reward
                 reward = self.env.step(action)
+                cumulative_reward += reward
                 next_state = self.env.state()
                 next_action = self.select_action(next_state)
                 done = self.env.done()
                 # Update expected reward if necessary
                 if not done:
                     self.update(state, action, reward, next_state, next_action)
-                # Move along to the next state and cumulate reward
+                # Move along to the next state
                 state = next_state
                 action = next_action
-                cumulative_reward += reward
 
             # Record episode cumulative reward
             episode_returns[e] = cumulative_reward
@@ -266,17 +266,17 @@ class ExpectedSARSAAgent(object):
 
             # Run episode
             while not done:
-                # Select and complete an action
+                # Select and complete an action, and cumulate reward
                 action = self.select_action(state)
                 reward = self.env.step(action)
+                cumulative_reward += reward
                 next_state = self.env.state()
                 done = self.env.done()
                 # Update expected reward if necessary
                 if not done:
                     self.update(state, action, reward, next_state)
-                # Move along to the next state and cumulate reward
+                # Move along to the next state
                 state = next_state
-                cumulative_reward += reward
 
             # Record episode cumulative reward
             episode_returns[e] = cumulative_reward
@@ -341,12 +341,12 @@ class nStepSARSAAgent(object):
         """
 
         # Calculate n_step_return
-        n_step_return = sum(self.gamma ** step * reward[step] for step in range(self.n_steps))
-        n_step_return += self.gamma ** self.n_steps * self.Q[state, action]
+        n_step_return = sum(self.gamma ** step * reward[step] for step in range(len(reward)))
+        n_step_return += self.gamma ** len(reward) * self.Q[state, action]
 
         # Update the expected reward for selected state and action
-        update = n_step_return - self.Q[state, action]
-        self.Q[update_state, update_action] = self.Q[state, action] + self.alpha * update
+        update = n_step_return - self.Q[update_state, update_action]
+        self.Q[update_state, update_action] = self.Q[update_state, update_action] + self.alpha * update
 
     def train(self, n_episodes: int) -> np.array:
         """
@@ -360,40 +360,67 @@ class nStepSARSAAgent(object):
         episode_returns = np.zeros(n_episodes)
         for e in range(n_episodes):
             # Reset the episodic variables
-            update_state = self.env.reset()
-            update_action, current_action = self.select_action(update_state)
+            current_state, update_state = self.env.reset()
+            current_action, update_action = self.select_action(current_state)
             done = self.env.done()
             cumulative_reward = 0
             n_step_rewards = np.zeros(self.n_steps)
-            past_states = []
+            previous_states = []
 
-            # Takes n+1 actions to generate n_step_rewards
+            # Takes n (+1 above) actions to generate n_step_rewards
             for step in range(self.n_steps):
+                previous_states.append(current_state)
                 n_step_rewards[step] = self.env.step(current_action)
                 current_state = self.env.state()
-                past_states.append(current_state)
                 current_action = self.select_action(current_state)
+                done = self.env.done()
 
                 # Breaks if terminal state is reached
-                if self.env.done():
-                    done = self.env.done()
+                if done:
                     break
 
             # Run episode
             while not done:
-                # Update expected reward
-                self.update(current_state, current_action, cumulative_reward, update_state, update_action)
 
-                # Select and complete an action, updating past rewards, go to the next state and accumulating the reward
+                # Updating past rewards and accumulating the reward
                 n_step_rewards = np.roll(n_step_rewards, -1)
-                n_step_rewards[self.n_steps-1] = self.env.step(current_action)
-                current_state = self.env.state()
-                current_action = self.select_action(current_state)
+                n_step_rewards[-1] = self.env.step(current_action)
+                cumulative_reward += n_step_rewards[-1]
                 done = self.env.done()
-                update_state = past_states.pop(0)
-                past_states.append(current_state)
+
+                # Makes sure terminal state hasn't been reached
+                if not done:
+                    # Go to the next state and action
+                    current_state = self.env.state()
+                    current_action = self.select_action(current_state)
+
+                    # Update expected reward
+                    self.update(current_state, current_action, n_step_rewards, update_state, update_action)
+
+                    # Takes next state being updated from previous state list
+                    update_state = previous_states.pop(0)
+                    update_action = self.select_action(update_state)
+                    previous_states.append(current_state)
+
+            # Sums non-summed rewards
+            cumulative_reward += sum(n_step_rewards)
+
+            # Removes T-1 state from previous state list, setting it as the cap for the update function
+            cap_state = previous_states.pop(-1)
+            cap_action = self.select_action(cap_state)
+
+            # Removes terminal reward (0) for rewards list
+            n_step_rewards = n_step_rewards[:-1]
+
+            # Updates non-updated states
+            for update_state in previous_states:
+
+                # Removes oldest reward from reward list and selects action
+                n_step_rewards = n_step_rewards[1:]
                 update_action = self.select_action(update_state)
-                cumulative_reward += n_step_rewards[self.n_steps-1]
+
+                # Update expected reward
+                self.update(cap_state, cap_action, n_step_rewards, update_state, update_action)
 
             # Record episode cumulative reward
             episode_returns[e] = cumulative_reward
