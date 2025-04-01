@@ -1,13 +1,13 @@
 import numpy as np
-from ShortCutEnvironment import env
 
 
 class QLearningAgent(object):
 
-    def __init__(self, n_actions: int, n_states: int, epsilon=0.1, alpha=0.1, gamma=1.0, seed: int = None) -> None:
+    def __init__(self, env, n_actions: int, n_states: int, epsilon=0.1, alpha=0.1, gamma=1.0, seed: int = None) -> None:
         """
         Initializer method for Q-Learning agent model, sets the values necessary to complete all other methods.
 
+        :param env: Agent environment.
         :param n_actions: Number of actions an agent can take at any state.
         :param n_states: Number of states the environment contains.
         :param epsilon: Exploration constant.
@@ -16,8 +16,9 @@ class QLearningAgent(object):
         :param seed: Randomness seed.
         """
 
-        self.n_actions: int = n_actions
-        self.n_states: int = n_states
+        self.env = env
+        self.n_actions: int = n_actions     # env.action_size
+        self.n_states: int = n_states       # env.state_size ?-x
         self.epsilon: float = epsilon
         self.alpha: float = alpha
         self.gamma: float = gamma
@@ -67,17 +68,17 @@ class QLearningAgent(object):
         episode_returns = np.zeros(n_episodes)
         for e in range(n_episodes):
             # Reset the episodic variables
-            state = env.reset()
-            done = env.done()
+            state = self.env.reset()
+            done = self.env.done()
             cumulative_reward = 0
 
             # Run episode
             while not done:
                 # Select and complete an action
                 action = self.select_action(state)
-                reward = env.step(action)
-                next_state = env.state()
-                done = env.done()
+                reward = self.env.step(action)
+                next_state = self.env.state()
+                done = self.env.done()
                 # Update expected reward if necessary
                 if not done:
                     self.update(state, action, reward, next_state)
@@ -93,10 +94,11 @@ class QLearningAgent(object):
 
 class SARSAAgent(object):
 
-    def __init__(self, n_actions: int, n_states: int, epsilon=0.1, alpha=0.1, gamma=1.0, seed: int = None) -> None:
+    def __init__(self, env, n_actions: int, n_states: int, epsilon=0.1, alpha=0.1, gamma=1.0, seed: int = None) -> None:
         """
         Initializer method for SARSA agent model, sets the values necessary to complete all other methods.
 
+        :param env: Agent environment.
         :param n_actions: Number of actions an agent can take at any state.
         :param n_states: Number of states the environment contains.
         :param epsilon: Exploration constant.
@@ -105,12 +107,13 @@ class SARSAAgent(object):
         :param seed: Randomness seed.
         """
 
-        self.n_actions: int = n_actions
-        self.n_states: int = n_states
+        self.env = env
+        self.n_actions: int = n_actions     # env.action_size
+        self.n_states: int = n_states       # env.state_size ?-x
         self.epsilon: float = epsilon
         self.alpha: float = alpha
         self.gamma: float = gamma
-        self.Q: np.ndarray = np.zeros((n_states, n_actions))
+        self.Q: np.ndarray = np.zeros((self.n_states, self.n_actions))
 
         np.random.seed(seed)  # Used to ensure randomness, but can be filled to give repeatability in training.
 
@@ -157,18 +160,18 @@ class SARSAAgent(object):
         episode_returns = np.zeros(n_episodes)
         for e in range(n_episodes):
             # Reset the episodic variables
-            state = env.reset()
+            state = self.env.reset()
             action = self.select_action(state)
-            done = env.done()
+            done = self.env.done()
             cumulative_reward = 0
 
             # Run episode
             while not done:
                 # Select and complete an action
-                reward = env.step(action)
-                next_state = env.state()
+                reward = self.env.step(action)
+                next_state = self.env.state()
                 next_action = self.select_action(next_state)
-                done = env.done()
+                done = self.env.done()
                 # Update expected reward if necessary
                 if not done:
                     self.update(state, action, reward, next_state, next_action)
@@ -185,10 +188,11 @@ class SARSAAgent(object):
 
 class ExpectedSARSAAgent(object):
 
-    def __init__(self, n_actions: int, n_states: int, epsilon=0.1, alpha=0.1, gamma=1.0, seed: int = None) -> None:
+    def __init__(self, env, n_actions: int, n_states: int, epsilon=0.1, alpha=0.1, gamma=1.0, seed: int = None) -> None:
         """
         Initializer method for Expected SARSA agent model, sets the values necessary to complete all other methods.
 
+        :param env: Agent environment.
         :param n_actions: Number of actions an agent can take at any state.
         :param n_states: Number of states the environment contains.
         :param epsilon: Exploration constant.
@@ -197,15 +201,15 @@ class ExpectedSARSAAgent(object):
         :param seed: Randomness seed.
         """
 
-        self.n_actions: int = n_actions
-        self.n_states: int = n_states
+        self.env = env
+        self.n_actions: int = n_actions     # env.action_size
+        self.n_states: int = n_states       # env.state_size ?-x
         self.epsilon: float = epsilon
         self.alpha: float = alpha
         self.gamma: float = gamma
         self.Q: np.ndarray = np.zeros((n_states, n_actions))
 
         np.random.seed(seed)  # Used to ensure randomness, but can be filled to give repeatability in training.
-
 
     def select_action(self, state: int) -> int:
         """
@@ -256,17 +260,17 @@ class ExpectedSARSAAgent(object):
         episode_returns = np.zeros(n_episodes)
         for e in range(n_episodes):
             # Reset the episodic variables
-            state = env.reset()
-            done = env.done()
+            state = self.env.reset()
+            done = self.env.done()
             cumulative_reward = 0
 
             # Run episode
             while not done:
                 # Select and complete an action
                 action = self.select_action(state)
-                reward = env.step(action)
-                next_state = env.state()
-                done = env.done()
+                reward = self.env.step(action)
+                next_state = self.env.state()
+                done = self.env.done()
                 # Update expected reward if necessary
                 if not done:
                     self.update(state, action, reward, next_state)
@@ -282,10 +286,12 @@ class ExpectedSARSAAgent(object):
 
 class nStepSARSAAgent(object):
 
-    def __init__(self, n_actions: int, n_states: int, epsilon=0.1, alpha=0.1, gamma=1.0, n_steps: int = 1, seed: int = None) -> None:
+    def __init__(self, env, n_actions: int, n_states: int, epsilon=0.1, alpha=0.1, gamma=1.0, n_steps: int = 1,
+                 seed: int = None) -> None:
         """
         Initializer method for n-Step agent model, sets the values necessary to complete all other methods.
 
+        :param env: Agent environment.
         :param n_actions: Number of actions an agent can take at any state.
         :param n_states: Number of states the environment contains.
         :param epsilon: Exploration constant.
@@ -295,8 +301,9 @@ class nStepSARSAAgent(object):
         :param seed: Randomness seed.
         """
 
-        self.n_actions: int = n_actions
-        self.n_states: int = n_states
+        self.env = env
+        self.n_actions: int = n_actions     # env.action_size
+        self.n_states: int = n_states       # env.state_size ?-x
         self.epsilon: float = epsilon
         self.alpha: float = alpha
         self.gamma: float = gamma
@@ -304,7 +311,6 @@ class nStepSARSAAgent(object):
         self.Q: np.ndarray = np.zeros((n_states, n_actions))
 
         np.random.seed(seed)  # Used to ensure randomness, but can be filled to give repeatability in training.
-
 
     def select_action(self, state: int) -> int:
         """
@@ -324,7 +330,8 @@ class nStepSARSAAgent(object):
     def update(self, state: int, action: int, reward: np.array, update_state: int, update_action: int) -> None:
         """
         Update the expected reward values (Q) table utilizing the formula:
-        Q(s',a') = Q(s, a) + a((r_t+1 + g * r_t+2 + ... + g^n-1 r_t+n Q(s,a)) for n_steps - Q(s, a)), using Q table, alpha, and gamma.
+        Q(s',a') = Q(s, a) + a((r_t+1 + g * r_t+2 + ... + g^n-1 r_t+n Q(s,a)) for n_steps - Q(s, a)),
+        using Q table, alpha, and gamma.
 
         :param state: Current state.
         :param action: Selected action.
@@ -353,23 +360,23 @@ class nStepSARSAAgent(object):
         episode_returns = np.zeros(n_episodes)
         for e in range(n_episodes):
             # Reset the episodic variables
-            update_state = env.reset()
+            update_state = self.env.reset()
             update_action, current_action = self.select_action(update_state)
-            done = env.done()
+            done = self.env.done()
             cumulative_reward = 0
             n_step_rewards = np.zeros(self.n_steps)
             past_states = []
 
             # Takes n+1 actions to generate n_step_rewards
             for step in range(self.n_steps):
-                n_step_rewards[step] = env.step(current_action)
-                current_state = env.state()
+                n_step_rewards[step] = self.env.step(current_action)
+                current_state = self.env.state()
                 past_states.append(current_state)
                 current_action = self.select_action(current_state)
 
                 # Breaks if terminal state is reached
-                if env.done():
-                    done = env.done()
+                if self.env.done():
+                    done = self.env.done()
                     break
 
             # Run episode
@@ -377,12 +384,12 @@ class nStepSARSAAgent(object):
                 # Update expected reward
                 self.update(current_state, current_action, cumulative_reward, update_state, update_action)
 
-                # Select and complete an action, updating past rewards, moving to the next state and accumulating the reward
+                # Select and complete an action, updating past rewards, go to the next state and accumulating the reward
                 n_step_rewards = np.roll(n_step_rewards, -1)
-                n_step_rewards[self.n_steps-1] = env.step(current_action)
-                current_state = env.state()
+                n_step_rewards[self.n_steps-1] = self.env.step(current_action)
+                current_state = self.env.state()
                 current_action = self.select_action(current_state)
-                done = env.done()
+                done = self.env.done()
                 update_state = past_states.pop(0)
                 past_states.append(current_state)
                 update_action = self.select_action(update_state)
