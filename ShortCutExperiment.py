@@ -6,90 +6,128 @@ from ShortCutAgents import QLearningAgent, SARSAAgent, ExpectedSARSAAgent, nStep
 from ShortCutEnvironment import ShortcutEnvironment, WindyShortcutEnvironment
 
 
-def create_plot(title="Experiment", x_label="Parameter setting", y_label="Average reward") -> plt.axes:
+def run_repetitions(agent_type, env_type, n_rep=100, n_episodes=1000, e=0.1, a=0.1, g=1, **args) -> np.array:
     """
-    Create basic axes plot to overlay graphs, all created plots show as separate figures.
+    Run repetitions of agent initialization and training to obtain the average expected reward for each episode.
+    Also prints the greedy policy of the agent in the console.
 
-    :param title: Figures title.
-    :param x_label: X-axis label.
-    :param y_label: Y-axis label.
+    :param agent_type: The agent class used for repetitions.
+    :param env_type: The environment class in which the agent behaves.
+    :param n_rep: Number of repetitions for the experiment to run.
+    :param n_episodes: Number of training episodes for the agent to run.
+    :param e: Epsilon hyperparameter to be used by agent.
+    :param a: Alpha hyperparameter to be used by agent.
+    :param g: Gamma hyperparameter to be used by agent.
+    :param args: Can accept n_steps (int) hyperparameter, or seed (int) hyperparameter.
 
-    :return: Matplotlib axes object containing the relevant plot figure.
-    """
-
-    plot = plt.axes()
-    plot.set_title(title)
-    plot.set_xlabel(x_label)
-    plot.set_ylabel(y_label)
-    return plot
-
-
-def smooth_curve(curve: np.typing.ArrayLike, window=3, poly=1) -> np.typing.ArrayLike:
-    """
-    Basic smoothing function for vector of curve points, preferably use only when necessary.
-
-    :param curve: Array like ordered collection of points.
-    :param window: Number of co-efficients, must be less than length of curve points.
-    :param poly: Order of polynomial of co-efficients.
-
-    :return: Smoothed curve points.
+    :return: The rewards of each episode averaged over all repetitions
     """
 
-    return savgol_filter(curve, window, poly)
+    # Prevent no environment and agent initialization
+    if n_rep < 1:
+        return np.array([0])
+
+    # Get the average rewards for given hyper-parameters
+    total_rewards = np.zeros([n_rep, n_episodes])
+    for rep in range(n_rep):
+        env = env_type()
+        agent = agent_type(env, epsilon=e, alpha=a, gamma=g, **args)
+        total_rewards[rep] = agent.train(n_episodes)
+
+    # Print an example of the greedy policy for one iteration, then return
+    print("Greedy policy for", agent_type.__name__, "in a", env_type.__name__)
+    env.render_greedy(agent.Q)
+    smooth_rewards = savgol_filter(total_rewards, 38, 1)
+    return np.mean(smooth_rewards, axis=0)
 
 
-# Add a graph, curve and legend, to the experiment plot
-def add_graph(plot: plt.Axes, curve: np.typing.ArrayLike, label: str = None, smooth: bool = False) -> None:
+def graph(curve: np.typing.ArrayLike, label: str, title: str = None, x_label="Episodes", y_label="Average reward"):
     """
-    Will need to smooth the curve of a graph if necessary and then add it with a legend to the plot.
-    Should receive:
-    plot, original graph, legend label.
-    Can receive:
-    color, line type.
-    """
-    points = smooth_curve(curve) if smooth else curve
-    if label is None:
-        plot.plot(points)
-    else:
-        plot.plot(points, label=label)
-        plot.legend()
+    Plots a graph using a set of curve points and adds it to the legend, can also be used to set up a figure.
 
-
-# Repeat a training and result iteration, generate the graph
-def run_repetitions(agent, seed: int = None, n_repetitions: int = 500, n_episodes: int = 1000):
-    """
-    Will need to run a number of repetitions that reset the agent and average out the results.
-    Should receive:
-    agent, environment, number of repetitions.
-    Should return an averaged results graph.
+    :param curve: Curve points to plot as a graph
+    :param label: The graph label to add as legend
+    :param title: Set the new figure title
+    :param x_label: Set the new figure x-axis label
+    :param y_label: Set the new figure y-axis label
     """
 
-    np.random.seed(seed)  # For reproducibility or randomness
+    # New figure setting
+    if title is not None:
+        plt.title(title)
+        plt.xlabel(x_label)
+        plt.ylabel(y_label)
+    # Plot the graph and add the legend
+    plt.plot(curve, label=label)
+    plt.legend(loc='lower right')
 
-    rewards = np.zeros((n_repetitions, n_episodes))
-    for rep in range(n_repetitions):
-        rewards[rep] = agent.train(n_episodes)
 
-    average_rewards = np.mean(rewards, axis=0)
-    return np.mean(average_rewards)
-
-
-# Initialize the agent and environment, call the other functions
-def experiment(environments, agents, reps, eps, seed):
+def run_experiment(default=True, alpha: list = None, n: list = None, agent_types: list = None, env_types: list = None,
+                   seed: int = None, **args):
     """
-    Will need iterate over multiple agents and environments to initialize then run experiment, create plot then display.
-    Should receive:
-    all agents, all environments, number of repetitions.
-    Can receive:
-    customization settings.
-    """
-    for env in environments:
-        for agent in agents:
-            e_plot = create_plot(f"Agent: {agent.__name__}, Environment: {env.__name__}")
+    By default, runs all the report required experiments and presents the results for every desired figure.
+    Can be used to run specific experiments on alpha values.
 
-    raise NotImplementedError("Complete all prior functions then work here.")
+    :param default: Runs default experiment
+    :param alpha: All alpha float values to be tested
+    :param n: All n step values to be tested
+    :param agent_types: All agent classes
+    :param env_types: All environmental classes
+    :param seed: Randomization setting
+    :param args: Arguments to be passed to the repetitions
+    """
+
+    # Allow for recreation if desired
+    if seed is not None:
+        np.random.seed(seed)
+
+    # Default alpha and n-step experiment ranges
+    if default or alpha is None:
+        alpha = [0.01, 0.1, 0.5, 0.9]
+    if default or n is None:
+        n = [1, 2, 5, 10, 25]
+
+    # By default use all agents and environments
+    if default or agent_types is None:
+        agent_types = [QLearningAgent, SARSAAgent, ExpectedSARSAAgent, nStepSARSAAgent]
+    if default or env_types is None:
+        env_types = [ShortcutEnvironment, WindyShortcutEnvironment]
+
+    # Run repetitions and present immediate results
+    for agent in agent_types:
+        for env in env_types:
+            # Save all results to present later together
+            all_rewards = []
+            all_labels = []
+            # Windy environment only for SARSAAgent
+            if default and agent is not agent_types[1] and env is env_types[1]:
+                continue
+            # Don't test alpha for nStepsSARSAAgent
+            if default and agent is not agent_types[3]:
+                for a in alpha:
+                    avg_rewards = run_repetitions(agent, env, a=a, **args)
+                    # Save results
+                    all_rewards.append(avg_rewards)
+                    all_labels.append(f"{agent.__name__} in {env.__name__}, alpha={a}")
+                    # Present results of this specific experiment alone
+                    plt.figure()
+                    graph(avg_rewards, f"Alpha: {a}", f"{agent.__name__} in {env.__name__}")
+            else:  # Should be modified to improve code readability and sustainability
+                for steps in n:
+                    avg_rewards = run_repetitions(agent, env, a=0.9, n_steps=steps, **args)
+                    # Save results
+                    all_rewards.append(avg_rewards)
+                    all_labels.append(f"{agent.__name__} in {env.__name__}, steps={steps}")
+                    # Present results of this specific experiment alone
+                    plt.figure()
+                    graph(avg_rewards, f"Steps: {steps}", f"{agent.__name__} in {env.__name__}")
+
+            # Show all results in one figure
+            plt.figure()
+            for curve, label in zip(all_rewards, all_labels):
+                graph(curve, label, "Results of all experiment variations")
+            plt.show()
 
 
 if __name__ == "__main__":
-    print("Wait you must, young jedi.")
-    
+    run_experiment(n_rep=10)

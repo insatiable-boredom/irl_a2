@@ -3,13 +3,11 @@ import numpy as np
 
 class QLearningAgent(object):
 
-    def __init__(self, env, n_actions: int, n_states: int, epsilon=0.1, alpha=0.1, gamma=1.0, seed: int = None) -> None:
+    def __init__(self, env, epsilon=0.1, alpha=0.1, gamma=1.0, seed: int = None) -> None:
         """
         Initializer method for Q-Learning agent model, sets the values necessary to complete all other methods.
 
         :param env: Agent environment.
-        :param n_actions: Number of actions an agent can take at any state.
-        :param n_states: Number of states the environment contains.
         :param epsilon: Exploration constant.
         :param alpha: Learning constant.
         :param gamma: Decay constant.
@@ -17,16 +15,17 @@ class QLearningAgent(object):
         """
 
         self.env = env
-        self.n_actions: int = n_actions     # env.action_size
-        self.n_states: int = n_states       # env.state_size ?-x
+        self.n_states: int = env.state_size()
+        self.n_actions: int = env.action_size()
         self.epsilon: float = epsilon
         self.alpha: float = alpha
         self.gamma: float = gamma
-        self.Q: np.ndarray = np.zeros((n_states, n_actions))
+        self.Q: np.ndarray = np.zeros((self.n_states, self.n_actions))
 
-        np.random.seed(seed)  # Used to ensure randomness, but can be filled to give repeatability in training.
+        if seed is not None:
+            np.random.seed(seed)  # Used to ensure randomness, but can be filled to give repeatability in training.
 
-    def select_action(self, state: int) -> int:
+    def select_action(self, state: int) -> int | np.ndarray[int]:
         """
         Epsilon greedy policy action selector, randomly generates a probability and correspondingly return an action.
 
@@ -39,12 +38,12 @@ class QLearningAgent(object):
         if np.random.rand() < self.epsilon:
             return np.random.randint(0, self.n_actions)
         # Choose best action
-        return np.argmax(self.Q[state])[0]
+        return np.argmax(self.Q[state])
 
     def update(self, state: int, action: int, reward: float, next_state: int) -> None:
         """
         Update the expected reward values (Q) table utilizing the formula:
-        Q(s,a) = Q(s, a) + a(r + g*max_a(Q(s')) - Q(s, a)), using Q table, alpha, and gamma.
+        Q(s,a) = Q(s, a) + alf(r + g*max_a(Q(s')) - Q(s, a)), using Q table, alpha, and gamma.
 
         :param state: Current state.
         :param action: Selected action.
@@ -53,7 +52,7 @@ class QLearningAgent(object):
         """
 
         # Update the expected reward for selected state and action
-        update = reward + self.gamma * np.argmax(self.Q[next_state]) - self.Q[state, action]
+        update = reward + self.gamma * np.amax(self.Q[next_state]) - self.Q[state, action]
         self.Q[state, action] = self.Q[state, action] + self.alpha * update
 
     def train(self, n_episodes: int) -> np.array:
@@ -94,13 +93,11 @@ class QLearningAgent(object):
 
 class SARSAAgent(object):
 
-    def __init__(self, env, n_actions: int, n_states: int, epsilon=0.1, alpha=0.1, gamma=1.0, seed: int = None) -> None:
+    def __init__(self, env, epsilon=0.1, alpha=0.1, gamma=1.0, seed: int = None) -> None:
         """
         Initializer method for SARSA agent model, sets the values necessary to complete all other methods.
 
         :param env: Agent environment.
-        :param n_actions: Number of actions an agent can take at any state.
-        :param n_states: Number of states the environment contains.
         :param epsilon: Exploration constant.
         :param alpha: Learning constant.
         :param gamma: Decay constant.
@@ -108,16 +105,17 @@ class SARSAAgent(object):
         """
 
         self.env = env
-        self.n_actions: int = n_actions     # env.action_size
-        self.n_states: int = n_states       # env.state_size ?-x
+        self.n_states: int = env.state_size()
+        self.n_actions: int = env.action_size()
         self.epsilon: float = epsilon
         self.alpha: float = alpha
         self.gamma: float = gamma
         self.Q: np.ndarray = np.zeros((self.n_states, self.n_actions))
 
-        np.random.seed(seed)  # Used to ensure randomness, but can be filled to give repeatability in training.
+        if seed is not None:
+            np.random.seed(seed)  # Used to ensure randomness, but can be filled to give repeatability in training.
 
-    def select_action(self, state: int) -> int:
+    def select_action(self, state: int) -> int | np.ndarray[int]:
         """
         Epsilon greedy policy action selector, randomly generates a probability and correspondingly return an action.
 
@@ -130,12 +128,12 @@ class SARSAAgent(object):
         if np.random.rand() < self.epsilon:
             return np.random.randint(0, self.n_actions)
         # Choose best action
-        return np.argmax(self.Q[state])[0]
+        return np.argmax(self.Q[state])
 
     def update(self, state: int, action: int, reward: float, next_state: int, next_action: int) -> None:
         """
         Update the expected reward values (Q) table utilizing the formula:
-        Q(s,a) = Q(s, a) + a(r + g*Q(s',a') - Q(s, a)), using Q table, alpha, and gamma.
+        Q(s,a) = Q(s, a) + alf(r + g*Q(s',a') - Q(s, a)), using Q table, alpha, and gamma.
 
         :param state: Current state.
         :param action: Selected action.
@@ -188,13 +186,11 @@ class SARSAAgent(object):
 
 class ExpectedSARSAAgent(object):
 
-    def __init__(self, env, n_actions: int, n_states: int, epsilon=0.1, alpha=0.1, gamma=1.0, seed: int = None) -> None:
+    def __init__(self, env, epsilon=0.1, alpha=0.1, gamma=1.0, seed: int = None) -> None:
         """
         Initializer method for Expected SARSA agent model, sets the values necessary to complete all other methods.
 
         :param env: Agent environment.
-        :param n_actions: Number of actions an agent can take at any state.
-        :param n_states: Number of states the environment contains.
         :param epsilon: Exploration constant.
         :param alpha: Learning constant.
         :param gamma: Decay constant.
@@ -202,16 +198,17 @@ class ExpectedSARSAAgent(object):
         """
 
         self.env = env
-        self.n_actions: int = n_actions     # env.action_size
-        self.n_states: int = n_states       # env.state_size ?-x
+        self.n_states: int = env.state_size()
+        self.n_actions: int = env.action_size()
         self.epsilon: float = epsilon
         self.alpha: float = alpha
         self.gamma: float = gamma
-        self.Q: np.ndarray = np.zeros((n_states, n_actions))
+        self.Q: np.ndarray = np.zeros((self.n_states, self.n_actions))
 
-        np.random.seed(seed)  # Used to ensure randomness, but can be filled to give repeatability in training.
+        if seed is not None:
+            np.random.seed(seed)  # Used to ensure randomness, but can be filled to give repeatability in training.
 
-    def select_action(self, state: int) -> int:
+    def select_action(self, state: int) -> int | np.ndarray[int]:
         """
         Epsilon greedy policy action selector, randomly generates a probability and correspondingly return an action.
 
@@ -224,12 +221,12 @@ class ExpectedSARSAAgent(object):
         if np.random.rand() < self.epsilon:
             return np.random.randint(0, self.n_actions)
         # Choose best action
-        return np.argmax(self.Q[state])[0]
+        return np.argmax(self.Q[state])
 
     def update(self, state: int, action: int, reward: float, next_state: int) -> None:
         """
         Update the expected reward values (Q) table utilizing the formula:
-        Q(s,a) = Q(s, a) + a(r + g * sum(policy(a)) for all a * Q(s',a) - Q(s, a)), using Q table, alpha, and gamma.
+        Q(s,a) = Q(s, a) + alf(r + g * [sum(policy(p)) for all p * Q(s',a)] - Q(s, a)), using Q table, alpha, and gamma.
 
         :param state: Current state.
         :param action: Selected action.
@@ -242,7 +239,7 @@ class ExpectedSARSAAgent(object):
         action_probabilities[best_action] += 1 - self.epsilon
 
         # Sums Expected SARSA values
-        expected_SARSA = sum(action_probabilities[action] * self.Q[next_state, action] for action in self.Q[next_state])
+        expected_SARSA = sum(action_probabilities[act] * self.Q[next_state, act] for act in range(self.Q.shape[1]))
 
         # Update the expected reward for selected state and action
         update = reward + self.gamma * expected_SARSA - self.Q[state, action]
@@ -286,14 +283,11 @@ class ExpectedSARSAAgent(object):
 
 class nStepSARSAAgent(object):
 
-    def __init__(self, env, n_actions: int, n_states: int, epsilon=0.1, alpha=0.1, gamma=1.0, n_steps: int = 1,
-                 seed: int = None) -> None:
+    def __init__(self, env, epsilon=0.1, alpha=0.1, gamma=1.0, n_steps: int = 1, seed: int = None) -> None:
         """
-        Initializer method for n-Step agent model, sets the values necessary to complete all other methods.
+        Initializer method for Q-Learning agent model, sets the values necessary to complete all other methods.
 
         :param env: Agent environment.
-        :param n_actions: Number of actions an agent can take at any state.
-        :param n_states: Number of states the environment contains.
         :param epsilon: Exploration constant.
         :param alpha: Learning constant.
         :param gamma: Decay constant.
@@ -302,17 +296,18 @@ class nStepSARSAAgent(object):
         """
 
         self.env = env
-        self.n_actions: int = n_actions     # env.action_size
-        self.n_states: int = n_states       # env.state_size ?-x
+        self.n_states: int = env.state_size()
+        self.n_actions: int = env.action_size()
         self.epsilon: float = epsilon
         self.alpha: float = alpha
         self.gamma: float = gamma
-        self.n_steps = n_steps
-        self.Q: np.ndarray = np.zeros((n_states, n_actions))
+        self.n_steps: int = n_steps
+        self.Q: np.ndarray = np.zeros((self.n_states, self.n_actions))
 
-        np.random.seed(seed)  # Used to ensure randomness, but can be filled to give repeatability in training.
+        if seed is not None:
+            np.random.seed(seed)  # Used to ensure randomness, but can be filled to give repeatability in training.
 
-    def select_action(self, state: int) -> int:
+    def select_action(self, state: int) -> int | np.ndarray[int]:
         """
         Epsilon greedy policy action selector, randomly generates a probability and correspondingly return an action.
 
@@ -325,7 +320,7 @@ class nStepSARSAAgent(object):
         if np.random.rand() < self.epsilon:
             return np.random.randint(0, self.n_actions)
         # Choose best action
-        return np.argmax(self.Q[state])[0]
+        return np.argmax(self.Q[state])
 
     def update(self, state: int, action: int, reward: np.array, update_state: int, update_action: int) -> None:
         """
@@ -360,8 +355,10 @@ class nStepSARSAAgent(object):
         episode_returns = np.zeros(n_episodes)
         for e in range(n_episodes):
             # Reset the episodic variables
-            current_state, update_state = self.env.reset()
-            current_action, update_action = self.select_action(current_state)
+            current_state = self.env.reset()
+            update_state = current_state
+            current_action = self.select_action(current_state)
+            update_action = current_action
             done = self.env.done()
             cumulative_reward = 0
             n_step_rewards = np.zeros(self.n_steps)
@@ -415,7 +412,7 @@ class nStepSARSAAgent(object):
             # Updates non-updated states
             for update_state in previous_states:
 
-                # Removes oldest reward from reward list and selects action
+                # Removes the oldest reward from reward list and selects action
                 n_step_rewards = n_step_rewards[1:]
                 update_action = self.select_action(update_state)
 
