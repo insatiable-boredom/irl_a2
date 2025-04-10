@@ -153,5 +153,35 @@ if __name__ == "__main__":
     # nStepsSARSAAgent
     experiment(alpha=[], agent_types=[nStepSARSAAgent], env_types=[ShortcutEnvironment])
 
-    # # All experiments, 10 repetitions
-    # experiment(n_rep=10)
+    # All experiments, added hastily to match the testing of all in one.
+    # Prepare experiment variables
+    seed = None
+    a = 0.5
+    steps = 2
+    tests = [(QLearningAgent, ShortcutEnvironment),
+            (SARSAAgent, ShortcutEnvironment),
+            (SARSAAgent, WindyShortcutEnvironment),
+            (ExpectedSARSAAgent, ShortcutEnvironment),
+            (nStepSARSAAgent, ShortcutEnvironment)]
+
+    # In experiment variables
+    if seed is not None:
+        np.random.seed(seed)
+    all_rewards = []
+    all_labels = []
+
+    # Experiment
+    for agent, env in tests:
+        if agent is not nStepSARSAAgent:
+            avg_rewards = run_repetitions(agent, env, a=a)
+            complete_run(agent, env, avg_rewards, "Alpha", a, all_rewards, all_labels)
+        else:
+            avg_rewards = run_repetitions(agent, env, a=a, n_steps=steps)
+            complete_run(agent, env, avg_rewards, "n_stpes", steps, all_rewards, all_labels)
+        
+
+    # Present results
+    plt.figure()
+    for curve, label in zip(all_rewards, all_labels):
+        graph(curve, label, "Results of all experiment variations")
+    plt.show()
